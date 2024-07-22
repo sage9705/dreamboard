@@ -33,7 +33,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title = 'DreamBoard' }) => {
 
       <footer className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 py-4">
         <div className="container mx-auto text-center">
-          © 2024 DreamBoard. All rights reserved.
+          &copy;2024 DreamBoard. All rights reserved.
         </div>
       </footer>
     </div>
