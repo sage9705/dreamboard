@@ -12,7 +12,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title = 'DreamBoard' }) => {
   const { theme } = useTheme();
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'dark' : ''}`}>
+    <div className={`min-h-screen flex flex-col ${theme === 'dark' ? 'dark' : ''}`}>
       <Head>
         <title>{title}</title>
         <meta name="description" content="Create stunning mood boards with DreamBoard" />
@@ -21,7 +21,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title = 'DreamBoard' }) => {
 
       <Navbar />
 
-      <main className="container mx-auto py-8 px-4">
+      <main className="flex-grow">
         {children}
       </main>
 
