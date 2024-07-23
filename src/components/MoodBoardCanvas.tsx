@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import CanvasElement from './CanvasElement';
+import { useMoodBoard } from '@/hooks/useMoodboard';
 
 interface Image {
   id: string;
@@ -11,107 +13,107 @@ interface Image {
   height: number;
 }
 
-interface SelectedImage extends Image {
-  position: { x: number; y: number };
-  scaledWidth: number;
-  scaledHeight: number;
-}
-
 interface MoodBoardCanvasProps {
   images: Image[];
 }
 
 const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
-  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
-  const [draggedImage, setDraggedImage] = useState<SelectedImage | null>(null);
+  const { elements, addElement, updateElement } = useMoodBoard();
   const canvasRef = useRef<HTMLDivElement>(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [draggedElement, setDraggedElement] = useState<string | null>(null);
 
-  const scaleImage = (image: Image, maxWidth: number, maxHeight: number) => {
-    const aspectRatio = image.width / image.height;
-    let scaledWidth = image.width;
-    let scaledHeight = image.height;
-
-    if (scaledWidth > maxWidth) {
-      scaledWidth = maxWidth;
-      scaledHeight = scaledWidth / aspectRatio;
-    }
-
-    if (scaledHeight > maxHeight) {
-      scaledHeight = maxHeight;
-      scaledWidth = scaledHeight * aspectRatio;
-    }
-
-    return { scaledWidth, scaledHeight };
-  };
-
-  const addImage = (image: Image) => {
+  useEffect(() => {
     if (canvasRef.current) {
-      const canvasRect = canvasRef.current.getBoundingClientRect();
-      const { scaledWidth, scaledHeight } = scaleImage(image, canvasRect.width / 2, canvasRect.height / 2);
-      const newPosition = findAvailablePosition(canvasRect, scaledWidth, scaledHeight);
-      
-      setSelectedImages((prev) => [
-        ...prev,
-        {
-          ...image,
-          position: newPosition,
-          scaledWidth,
-          scaledHeight,
-        }
-      ]);
+      const { width, height } = canvasRef.current.getBoundingClientRect();
+      setCanvasSize({ width, height });
     }
-  };
+  }, []);
 
-  const findAvailablePosition = (canvasRect: DOMRect, width: number, height: number) => {
-    const padding = 10; // Padding between images
-    const maxX = canvasRect.width - width;
-    const maxY = canvasRect.height - height;
+  const findAvailableSpace = (width: number, height: number) => {
+    const padding = 10;
+    let x = padding;
+    let y = padding;
+    let maxHeight = 0;
 
-    for (let y = 0; y <= maxY; y += padding) {
-      for (let x = 0; x <= maxX; x += padding) {
-        if (!selectedImages.some(img => 
-          x < img.position.x + img.scaledWidth &&
-          x + width > img.position.x &&
-          y < img.position.y + img.scaledHeight &&
-          y + height > img.position.y
-        )) {
-          return { x, y };
+    while (y + height <= canvasSize.height - padding) {
+      let fits = true;
+      for (const element of elements) {
+        if (
+          x < element.x + element.width &&
+          x + width > element.x &&
+          y < element.y + element.height &&
+          y + height > element.y
+        ) {
+          fits = false;
+          break;
         }
       }
+      if (fits) {
+        return { x, y };
+      }
+      x += width + padding;
+      if (x + width > canvasSize.width - padding) {
+        x = padding;
+        y += maxHeight + padding;
+        maxHeight = 0;
+      } else {
+        maxHeight = Math.max(maxHeight, height);
+      }
+    }
+    return null; // No space found
+  };
+
+  const addImageToCanvas = (image: Image) => {
+    const aspectRatio = image.width / image.height;
+    const maxWidth = canvasSize.width / 4;
+    const maxHeight = canvasSize.height / 3;
+    let width = maxWidth;
+    let height = width / aspectRatio;
+
+    if (height > maxHeight) {
+      height = maxHeight;
+      width = height * aspectRatio;
     }
 
-    // If no space is found, return a default position
-    return { x: 0, y: 0 };
+    const position = findAvailableSpace(width, height);
+    if (position) {
+      addElement({
+        id: `image-${Date.now()}`,
+        type: 'image',
+        content: image.urls.regular,
+        x: position.x,
+        y: position.y,
+        width,
+        height,
+        rotation: 0,
+        zIndex: elements.length,
+      });
+    } else {
+      console.log('No space available on canvas');
+    }
   };
 
-  const removeImage = (index: number) => {
-    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleDragStart = (e: React.DragEvent<HTMLImageElement>, image: SelectedImage) => {
-    setDraggedImage(image);
-    e.dataTransfer.setData('text/plain', image.id);
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
+    e.dataTransfer.setData('text/plain', id);
+    setDraggedElement(id);
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (draggedImage && canvasRef.current) {
+  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
+    if (draggedElement && canvasRef.current) {
       const canvasRect = canvasRef.current.getBoundingClientRect();
       const x = e.clientX - canvasRect.left;
       const y = e.clientY - canvasRect.top;
-
-      setSelectedImages((prev) =>
-        prev.map((img) =>
-          img.id === draggedImage.id ? { ...img, position: { x, y } } : img
-        )
-      );
-
-      setDraggedImage(null);
+      updateElement(draggedElement, { x, y });
     }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedElement(null);
   };
 
   return (
@@ -123,43 +125,36 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
             src={image.urls.thumb}
             alt={image.alt_description}
             className="w-full h-32 object-cover cursor-pointer rounded-lg shadow-md"
-            onClick={() => addImage(image)}
+            onClick={() => addImageToCanvas(image)}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData('application/json', JSON.stringify(image));
+            }}
           />
         ))}
       </div>
       <div
         ref={canvasRef}
-        className="w-full aspect-video rounded-lg shadow-lg overflow-hidden relative"
+        className="w-full aspect-video bg-gradient-to-br from-white/30 to-white/10 backdrop-blur-sm rounded-lg shadow-lg overflow-hidden relative"
+        style={{ minHeight: '60vh' }}
         onDragOver={handleDragOver}
-        onDrop={handleDrop}
+        onDrop={(e) => {
+          e.preventDefault();
+          const data = e.dataTransfer.getData('application/json');
+          if (data) {
+            const image = JSON.parse(data);
+            addImageToCanvas(image);
+          }
+        }}
       >
-        {selectedImages.map((image, index) => (
-          <div
-            key={`${image.id}-${index}`}
-            className="absolute cursor-move"
-            style={{
-              left: image.position.x,
-              top: image.position.y,
-              width: image.scaledWidth,
-              height: image.scaledHeight,
-            }}
-          >
-            <img
-              src={image.urls.regular}
-              alt={image.alt_description}
-              className="w-full h-full object-cover rounded-lg shadow-md"
-              draggable
-              onDragStart={(e) => handleDragStart(e, image)}
-            />
-            <button
-              className="absolute top-0 right-0 bg-white dark:bg-gray-800 rounded-full p-1 cursor-pointer"
-              onClick={() => removeImage(index)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </button>
-          </div>
+        {elements.map((element) => (
+          <CanvasElement
+            key={element.id}
+            element={element}
+            onDragStart={(e) => handleDragStart(e, element.id)}
+            onDrag={handleDrag}
+            onDragEnd={handleDragEnd}
+          />
         ))}
       </div>
     </div>
