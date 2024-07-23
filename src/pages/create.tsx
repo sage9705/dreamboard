@@ -17,29 +17,18 @@ interface Image {
 
 export default function Create() {
   const { theme } = useTheme();
-  const [searchQueries, setSearchQueries] = useState<string[]>([]);
-  const [currentQuery, setCurrentQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [images, setImages] = useState<Image[]>([]);
 
-  const addSearchQuery = () => {
-    if (currentQuery && searchQueries.length < 5) {
-      setSearchQueries([...searchQueries, currentQuery]);
-      setCurrentQuery('');
-    }
-  };
-
-  const removeSearchQuery = (index: number) => {
-    setSearchQueries(searchQueries.filter((_, i) => i !== index));
-  };
-
   const handleSearch = async () => {
-    if (searchQueries.length === 0) return;
+    const queries = searchInput.split(',').map(q => q.trim()).filter(q => q !== '');
+    if (queries.length === 0) return;
 
     try {
-      const queryString = searchQueries.join(',');
+      const queryString = queries.join(',');
       const response = await fetch(`/api/search-images?query=${queryString}`);
       const data = await response.json();
-      setImages(data.results);
+      setImages(prevImages => [...prevImages, ...data.results]);
     } catch (error) {
       console.error('Error searching images:', error);
     }
@@ -55,38 +44,25 @@ export default function Create() {
         >
           <h1 className="text-4xl sm:text-5xl font-bold mb-8 text-center text-gray-800 dark:text-white">Create Your Mood Board</h1>
           <div className="max-w-2xl mx-auto mb-8">
-            <div className="flex flex-wrap gap-2 mb-4">
-              {searchQueries.map((query, index) => (
-                <div key={index} className="bg-green-100 text-green-800 px-3 py-1 rounded-full flex items-center">
-                  <span>{query}</span>
-                  <button onClick={() => removeSearchQuery(index)} className="ml-2 text-green-600 hover:text-green-800">
-                    &times;
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="relative flex">
+            <div className="relative">
               <input
                 type="text"
-                placeholder="Enter keywords or emotions (max 5)"
-                value={currentQuery}
-                onChange={(e) => setCurrentQuery(e.target.value)}
-                className="w-full px-5 py-3 text-lg rounded-l-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-2 border-green-300 dark:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-300 ease-in-out"
-                onKeyPress={(e) => e.key === 'Enter' && addSearchQuery()}
+                placeholder="Enter keywords or emotions (comma-separated, max 5)"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full px-5 py-3 text-lg rounded-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-2 border-green-300 dark:border-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-300 ease-in-out"
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
               <button
-                onClick={addSearchQuery}
-                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-r-full transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50"
+                onClick={handleSearch}
+                className="absolute right-2 top-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-full transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-50"
               >
-                Add
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Search
               </button>
             </div>
-            <button
-              onClick={handleSearch}
-              className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
-            >
-              Search Images
-            </button>
           </div>
           <MoodBoardCanvas images={images} />
         </motion.div>

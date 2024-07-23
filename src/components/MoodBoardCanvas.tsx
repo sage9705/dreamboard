@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useMoodBoard } from '../hooks/useMoodBoard';
 import CanvasElement from './CanvasElement';
-import { useMoodBoard } from '@/hooks/useMoodboard';
 
 interface Image {
   id: string;
@@ -20,7 +20,7 @@ interface MoodBoardCanvasProps {
 const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
   const { elements, addElement, updateElement } = useMoodBoard();
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 });
   const [draggedElement, setDraggedElement] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,16 +34,15 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
     const padding = 10;
     let x = padding;
     let y = padding;
-    let maxHeight = 0;
 
     while (y + height <= canvasSize.height - padding) {
       let fits = true;
       for (const element of elements) {
         if (
-          x < element.x + element.width &&
-          x + width > element.x &&
-          y < element.y + element.height &&
-          y + height > element.y
+          x < element.x + element.width + padding &&
+          x + width + padding > element.x &&
+          y < element.y + element.height + padding &&
+          y + height + padding > element.y
         ) {
           fits = false;
           break;
@@ -52,22 +51,26 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
       if (fits) {
         return { x, y };
       }
-      x += width + padding;
+      x += padding;
       if (x + width > canvasSize.width - padding) {
         x = padding;
-        y += maxHeight + padding;
-        maxHeight = 0;
-      } else {
-        maxHeight = Math.max(maxHeight, height);
+        y += padding;
       }
     }
     return null; // No space found
   };
 
+  const expandCanvas = (newWidth: number, newHeight: number) => {
+    setCanvasSize(prev => ({
+      width: Math.max(prev.width, newWidth + 100),
+      height: Math.max(prev.height, newHeight + 100)
+    }));
+  };
+
   const addImageToCanvas = (image: Image) => {
     const aspectRatio = image.width / image.height;
-    const maxWidth = canvasSize.width / 4;
-    const maxHeight = canvasSize.height / 3;
+    const maxWidth = 200;
+    const maxHeight = 200;
     let width = maxWidth;
     let height = width / aspectRatio;
 
@@ -76,7 +79,12 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
       width = height * aspectRatio;
     }
 
-    const position = findAvailableSpace(width, height);
+    let position = findAvailableSpace(width, height);
+    if (!position) {
+      expandCanvas(canvasSize.width, canvasSize.height);
+      position = findAvailableSpace(width, height);
+    }
+
     if (position) {
       addElement({
         id: `image-${Date.now()}`,
@@ -89,8 +97,6 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
         rotation: 0,
         zIndex: elements.length,
       });
-    } else {
-      console.log('No space available on canvas');
     }
   };
 
@@ -106,9 +112,14 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
   const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
     if (draggedElement && canvasRef.current) {
       const canvasRect = canvasRef.current.getBoundingClientRect();
-      const x = e.clientX - canvasRect.left;
-      const y = e.clientY - canvasRect.top;
+      const x = e.clientX - canvasRect.left + canvasRef.current.scrollLeft;
+      const y = e.clientY - canvasRect.top + canvasRef.current.scrollTop;
       updateElement(draggedElement, { x, y });
+      
+      const element = elements.find(el => el.id === draggedElement);
+      if (element) {
+        expandCanvas(x + element.width, y + element.height);
+      }
     }
   };
 
@@ -126,36 +137,42 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
             alt={image.alt_description}
             className="w-full h-32 object-cover cursor-pointer rounded-lg shadow-md"
             onClick={() => addImageToCanvas(image)}
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData('application/json', JSON.stringify(image));
-            }}
           />
         ))}
       </div>
       <div
-        ref={canvasRef}
-        className="w-full aspect-video bg-gradient-to-br from-white/30 to-white/10 backdrop-blur-sm rounded-lg shadow-lg overflow-hidden relative"
-        style={{ minHeight: '60vh' }}
-        onDragOver={handleDragOver}
-        onDrop={(e) => {
-          e.preventDefault();
-          const data = e.dataTransfer.getData('application/json');
-          if (data) {
-            const image = JSON.parse(data);
-            addImageToCanvas(image);
-          }
-        }}
+        className="w-full overflow-auto bg-gradient-to-br from-white/30 to-white/10 backdrop-blur-sm rounded-lg shadow-lg"
+        style={{ maxHeight: '70vh' }}
       >
-        {elements.map((element) => (
-          <CanvasElement
-            key={element.id}
-            element={element}
-            onDragStart={(e) => handleDragStart(e, element.id)}
-            onDrag={handleDrag}
-            onDragEnd={handleDragEnd}
-          />
-        ))}
+        <div
+          ref={canvasRef}
+          style={{
+            width: `${canvasSize.width}px`,
+            height: `${canvasSize.height}px`,
+            position: 'relative'
+          }}
+          onDragOver={handleDragOver}
+          onDrop={(e) => {
+            e.preventDefault();
+            const id = e.dataTransfer.getData('text/plain');
+            if (id && canvasRef.current) {
+              const canvasRect = canvasRef.current.getBoundingClientRect();
+              const x = e.clientX - canvasRect.left + canvasRef.current.scrollLeft;
+              const y = e.clientY - canvasRect.top + canvasRef.current.scrollTop;
+              updateElement(id, { x, y });
+            }
+          }}
+        >
+          {elements.map((element) => (
+            <CanvasElement
+              key={element.id}
+              element={element}
+              onDragStart={(e) => handleDragStart(e, element.id)}
+              onDrag={handleDrag}
+              onDragEnd={handleDragEnd}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
