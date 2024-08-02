@@ -4,6 +4,7 @@ import { Resizable, ResizeCallbackData } from 'react-resizable';
 import { useMoodBoard } from '../hooks/useMoodBoard';
 import CanvasElement from './CanvasElement';
 import ContextMenu from './ContextMenu';
+import Image from 'next/image';
 
 interface Image {
   id: string;
@@ -157,13 +158,16 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
     <div className="flex flex-col items-center">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
         {images.map((image) => (
-          <img
-            key={image.id}
-            src={image.urls.thumb}
-            alt={image.alt_description}
-            className="w-full h-32 object-cover cursor-pointer rounded-lg shadow-md"
-            onClick={() => addImageToCanvas(image)}
-          />
+          <div key={image.id} className="relative w-full h-32">
+            <Image
+              src={image.urls.thumb}
+              alt={image.alt_description}
+              layout="fill"
+              objectFit="cover"
+              className="cursor-pointer rounded-lg shadow-md"
+              onClick={() => addImageToCanvas(image)}
+            />
+          </div>
         ))}
       </div>
       <div
