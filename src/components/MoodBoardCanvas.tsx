@@ -1,6 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useDrop } from 'react-dnd';
+import { Resizable } from 'react-resizable';
 import { useMoodBoard } from '../hooks/useMoodBoard';
 import CanvasElement from './CanvasElement';
+import ContextMenu from './ContextMenu';
 
 interface Image {
   id: string;
@@ -18,10 +21,10 @@ interface MoodBoardCanvasProps {
 }
 
 const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
-  const { elements, addElement, updateElement } = useMoodBoard();
+  const { elements, addElement, updateElement, removeElement, bringToFront, sendToBack } = useMoodBoard();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 });
-  const [draggedElement, setDraggedElement] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; elementId: string } | null>(null);
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -30,7 +33,23 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
     }
   }, []);
 
-  const findAvailableSpace = (width: number, height: number) => {
+  const [, drop] = useDrop({
+    accept: 'canvasElement',
+    drop: (item: { id: string }, monitor) => {
+      const delta = monitor.getDifferenceFromInitialOffset();
+      if (delta && item.id) {
+        const element = elements.find(el => el.id === item.id);
+        if (element) {
+          const x = Math.round(element.x + delta.x);
+          const y = Math.round(element.y + delta.y);
+          updateElement(item.id, { x, y });
+          expandCanvas(x + element.width, y + element.height);
+        }
+      }
+    },
+  });
+
+  const findAvailableSpace = useCallback((width: number, height: number) => {
     const padding = 10;
     let x = padding;
     let y = padding;
@@ -57,17 +76,17 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
         y += padding;
       }
     }
-    return null; // No space found
-  };
+    return null; 
+  }, [canvasSize, elements]);
 
-  const expandCanvas = (newWidth: number, newHeight: number) => {
+  const expandCanvas = useCallback((newWidth: number, newHeight: number) => {
     setCanvasSize(prev => ({
       width: Math.max(prev.width, newWidth + 100),
       height: Math.max(prev.height, newHeight + 100)
     }));
-  };
+  }, []);
 
-  const addImageToCanvas = (image: Image) => {
+  const addImageToCanvas = useCallback((image: Image) => {
     const aspectRatio = image.width / image.height;
     const maxWidth = 200;
     const maxHeight = 200;
@@ -98,34 +117,20 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
         zIndex: elements.length,
       });
     }
-  };
+  }, [addElement, canvasSize, elements.length, expandCanvas, findAvailableSpace]);
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
-    e.dataTransfer.setData('text/plain', id);
-    setDraggedElement(id);
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent, elementId: string) => {
     e.preventDefault();
-  };
+    setContextMenu({ x: e.clientX, y: e.clientY, elementId });
+  }, []);
 
-  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
-    if (draggedElement && canvasRef.current) {
-      const canvasRect = canvasRef.current.getBoundingClientRect();
-      const x = e.clientX - canvasRect.left + canvasRef.current.scrollLeft;
-      const y = e.clientY - canvasRect.top + canvasRef.current.scrollTop;
-      updateElement(draggedElement, { x, y });
-      
-      const element = elements.find(el => el.id === draggedElement);
-      if (element) {
-        expandCanvas(x + element.width, y + element.height);
-      }
-    }
-  };
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
 
-  const handleDragEnd = () => {
-    setDraggedElement(null);
-  };
+  const handleResize = useCallback((elementId: string, size: { width: number; height: number }) => {
+    updateElement(elementId, size);
+  }, [updateElement]);
 
   return (
     <div className="flex flex-col items-center">
@@ -145,35 +150,41 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
         style={{ maxHeight: '70vh' }}
       >
         <div
-          ref={canvasRef}
+          ref={drop(canvasRef)}
           style={{
             width: `${canvasSize.width}px`,
             height: `${canvasSize.height}px`,
             position: 'relative'
           }}
-          onDragOver={handleDragOver}
-          onDrop={(e) => {
-            e.preventDefault();
-            const id = e.dataTransfer.getData('text/plain');
-            if (id && canvasRef.current) {
-              const canvasRect = canvasRef.current.getBoundingClientRect();
-              const x = e.clientX - canvasRect.left + canvasRef.current.scrollLeft;
-              const y = e.clientY - canvasRect.top + canvasRef.current.scrollTop;
-              updateElement(id, { x, y });
-            }
-          }}
         >
           {elements.map((element) => (
-            <CanvasElement
+            <Resizable
               key={element.id}
-              element={element}
-              onDragStart={(e) => handleDragStart(e, element.id)}
-              onDrag={handleDrag}
-              onDragEnd={handleDragEnd}
-            />
+              width={element.width}
+              height={element.height}
+              onResize={(e, { size }) => handleResize(element.id, size)}
+              draggableOpts={{ grid: [1, 1] }}
+            >
+              <div>
+                <CanvasElement
+                  element={element}
+                  onContextMenu={(e) => handleContextMenu(e, element.id)}
+                />
+              </div>
+            </Resizable>
           ))}
         </div>
       </div>
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={handleCloseContextMenu}
+          onDelete={() => removeElement(contextMenu.elementId)}
+          onBringToFront={() => bringToFront(contextMenu.elementId)}
+          onSendToBack={() => sendToBack(contextMenu.elementId)}
+        />
+      )}
     </div>
   );
 };
