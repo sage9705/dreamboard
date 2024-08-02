@@ -61,6 +61,14 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
     },
   });
 
+  const combinedRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      canvasRef.current = node;
+      drop(node);
+    },
+    [drop]
+  );
+
   const findAvailableSpace = useCallback((width: number, height: number) => {
     const padding = 10;
     let x = padding;
@@ -163,7 +171,7 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
         style={{ maxHeight: '70vh' }}
       >
         <div
-          ref={drop(canvasRef)}
+          ref={combinedRef}
           style={{
             width: `${canvasSize.width}px`,
             height: `${canvasSize.height}px`,
