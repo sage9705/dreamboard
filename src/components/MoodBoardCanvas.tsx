@@ -154,6 +154,21 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
     updateElement(elementId, { width: size.width, height: size.height });
   }, [updateElement]);
 
+  const handleBringToFront = useCallback((elementId: string) => {
+    bringToFront(elementId);
+    setContextMenu(null);
+  }, [bringToFront]);
+
+  const handleSendToBack = useCallback((elementId: string) => {
+    sendToBack(elementId);
+    setContextMenu(null);
+  }, [sendToBack]);
+
+  const handleDelete = useCallback((elementId: string) => {
+    removeElement(elementId);
+    setContextMenu(null);
+  }, [removeElement]);
+
   return (
     <div className="flex flex-col items-center w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8 w-full">
@@ -205,9 +220,9 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
           x={contextMenu.x}
           y={contextMenu.y}
           onClose={handleCloseContextMenu}
-          onDelete={() => removeElement(contextMenu.elementId)}
-          onBringToFront={() => bringToFront(contextMenu.elementId)}
-          onSendToBack={() => sendToBack(contextMenu.elementId)}
+          onDelete={() => handleDelete(contextMenu.elementId)}
+          onBringToFront={() => handleBringToFront(contextMenu.elementId)}
+          onSendToBack={() => handleSendToBack(contextMenu.elementId)}
         />
       )}
     </div>
