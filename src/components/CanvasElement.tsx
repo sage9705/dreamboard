@@ -1,5 +1,7 @@
-import React from 'react';
+import React, {useRef} from 'react';
 import { useDrag } from 'react-dnd';
+import Image from 'next/image';
+
 
 interface CanvasElementProps {
   element: {
@@ -17,6 +19,7 @@ interface CanvasElementProps {
 }
 
 const CanvasElement: React.FC<CanvasElementProps> = ({ element, onContextMenu }) => {
+  const ref = useRef<HTMLDivElement>(null);
   const [{ isDragging }, drag] = useDrag({
     type: 'canvasElement',
     item: { id: element.id },
@@ -25,9 +28,11 @@ const CanvasElement: React.FC<CanvasElementProps> = ({ element, onContextMenu })
     }),
   });
 
+  drag(ref);
+
   return (
     <div
-      ref={drag}
+      ref={ref}
       style={{
         position: 'absolute',
         left: element.x,
@@ -42,11 +47,15 @@ const CanvasElement: React.FC<CanvasElementProps> = ({ element, onContextMenu })
       onContextMenu={onContextMenu}
     >
       {element.type === 'image' && (
-        <img
-          src={element.content}
-          alt="Mood board element"
-          className="w-full h-full object-cover rounded-lg shadow-md"
-        />
+        <div className="relative w-full h-full">
+          <Image
+            src={element.content}
+            alt="Mood board element"
+            layout="fill"
+            objectFit="cover"
+            className="rounded-lg shadow-md"
+          />
+        </div>
       )}
     </div>
   );
