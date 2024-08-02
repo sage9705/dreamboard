@@ -1,55 +1,56 @@
 import React from 'react';
-import { useDrag } from 'react-dnd';
 
-interface CanvasElementProps {
-  element: {
-    id: string;
-    type: 'image' | 'text';
-    content: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    rotation: number;
-    zIndex: number;
-  };
-  onContextMenu: (e: React.MouseEvent) => void;
+interface ContextMenuProps {
+  x: number;
+  y: number;
+  onClose: () => void;
+  onDelete: () => void;
+  onBringToFront: () => void;
+  onSendToBack: () => void;
 }
 
-const CanvasElement: React.FC<CanvasElementProps> = ({ element, onContextMenu }) => {
-  const [{ isDragging }, drag] = useDrag({
-    type: 'canvasElement',
-    item: { id: element.id },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
+const ContextMenu: React.FC<ContextMenuProps> = ({
+  x,
+  y,
+  onClose,
+  onDelete,
+  onBringToFront,
+  onSendToBack,
+}) => {
   return (
     <div
-      ref={drag}
-      style={{
-        position: 'absolute',
-        left: element.x,
-        top: element.y,
-        width: element.width,
-        height: element.height,
-        transform: `rotate(${element.rotation}deg)`,
-        zIndex: element.zIndex,
-        opacity: isDragging ? 0.5 : 1,
-        cursor: 'move',
-      }}
-      onContextMenu={onContextMenu}
+      className="fixed bg-white dark:bg-gray-800 shadow-md rounded-md py-2 z-50"
+      style={{ left: x, top: y }}
     >
-      {element.type === 'image' && (
-        <img
-          src={element.content}
-          alt="Mood board element"
-          className="w-full h-full object-cover rounded-lg shadow-md"
-        />
-      )}
+      <button
+        className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+        onClick={() => {
+          onBringToFront();
+          onClose();
+        }}
+      >
+        Bring to Front
+      </button>
+      <button
+        className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+        onClick={() => {
+          onSendToBack();
+          onClose();
+        }}
+      >
+        Send to Back
+      </button>
+      <button
+        className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"
+        onClick={() => {
+          onDelete();
+          onClose();
+        }}
+      >
+        Delete
+      </button>
     </div>
   );
 };
 
-export default CanvasElement;
+export default ContextMenu;
