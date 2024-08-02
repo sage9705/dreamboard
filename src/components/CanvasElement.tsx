@@ -1,7 +1,6 @@
-import React, {useRef} from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
 import Image from 'next/image';
-
 
 interface CanvasElementProps {
   element: {
@@ -28,7 +27,11 @@ const CanvasElement: React.FC<CanvasElementProps> = ({ element, onContextMenu })
     }),
   });
 
-  drag(ref);
+  useEffect(() => {
+    if (ref.current) {
+      drag(ref);
+    }
+  }, [drag]);
 
   return (
     <div
@@ -43,6 +46,7 @@ const CanvasElement: React.FC<CanvasElementProps> = ({ element, onContextMenu })
         zIndex: element.zIndex,
         opacity: isDragging ? 0.5 : 1,
         cursor: 'move',
+        transition: 'all 0.2s ease',
       }}
       onContextMenu={onContextMenu}
     >
@@ -53,7 +57,7 @@ const CanvasElement: React.FC<CanvasElementProps> = ({ element, onContextMenu })
             alt="Mood board element"
             layout="fill"
             objectFit="cover"
-            className="rounded-lg shadow-md"
+            className="rounded-lg"
           />
         </div>
       )}

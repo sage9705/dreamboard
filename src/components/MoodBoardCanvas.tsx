@@ -160,7 +160,7 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
         {images.map((image) => (
           <div key={image.id} className="relative w-full pt-[100%]">
             <Image
-              src={image.urls.thumb}
+              src={image.urls.regular}
               alt={image.alt_description}
               layout="fill"
               objectFit="cover"
