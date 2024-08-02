@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDrop } from 'react-dnd';
-import { Resizable } from 'react-resizable';
+import { Resizable, ResizeCallbackData } from 'react-resizable';
 import { useMoodBoard } from '../hooks/useMoodBoard';
 import CanvasElement from './CanvasElement';
 import ContextMenu from './ContextMenu';
@@ -18,6 +18,18 @@ interface Image {
 
 interface MoodBoardCanvasProps {
   images: Image[];
+}
+
+interface CanvasElement {
+  id: string;
+  type: 'image' | 'text';
+  content: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  zIndex: number;
 }
 
 const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
@@ -76,7 +88,7 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
         y += padding;
       }
     }
-    return null; 
+    return null;
   }, [canvasSize, elements]);
 
   const expandCanvas = useCallback((newWidth: number, newHeight: number) => {
@@ -128,8 +140,9 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
     setContextMenu(null);
   }, []);
 
-  const handleResize = useCallback((elementId: string, size: { width: number; height: number }) => {
-    updateElement(elementId, size);
+  const handleResize = useCallback((elementId: string, _: React.SyntheticEvent, data: ResizeCallbackData) => {
+    const { size } = data;
+    updateElement(elementId, { width: size.width, height: size.height });
   }, [updateElement]);
 
   return (
@@ -162,13 +175,13 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
               key={element.id}
               width={element.width}
               height={element.height}
-              onResize={(e, { size }) => handleResize(element.id, size)}
+              onResize={(e, data) => handleResize(element.id, e, data)}
               draggableOpts={{ grid: [1, 1] }}
             >
               <div>
                 <CanvasElement
                   element={element}
-                  onContextMenu={(e) => handleContextMenu(e, element.id)}
+                  onContextMenu={(e: React.MouseEvent) => handleContextMenu(e, element.id)}
                 />
               </div>
             </Resizable>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDrag } from 'react-dnd';
 
 interface CanvasElementProps {
   element: {
@@ -12,18 +13,21 @@ interface CanvasElementProps {
     rotation: number;
     zIndex: number;
   };
-  onDragStart: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDrag: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDragEnd: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }
 
-const CanvasElement: React.FC<CanvasElementProps> = ({ element, onDragStart, onDrag, onDragEnd }) => {
+const CanvasElement: React.FC<CanvasElementProps> = ({ element, onContextMenu }) => {
+  const [{ isDragging }, drag] = useDrag({
+    type: 'canvasElement',
+    item: { id: element.id },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
-      onDrag={onDrag}
-      onDragEnd={onDragEnd}
+      ref={drag}
       style={{
         position: 'absolute',
         left: element.x,
@@ -32,9 +36,10 @@ const CanvasElement: React.FC<CanvasElementProps> = ({ element, onDragStart, onD
         height: element.height,
         transform: `rotate(${element.rotation}deg)`,
         zIndex: element.zIndex,
-        transition: 'transform 0.1s ease-out',
+        opacity: isDragging ? 0.5 : 1,
+        cursor: 'move',
       }}
-      className="cursor-move"
+      onContextMenu={onContextMenu}
     >
       {element.type === 'image' && (
         <img
