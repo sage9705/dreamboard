@@ -155,24 +155,24 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
   }, [updateElement]);
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
+    <div className="flex flex-col items-center w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8 w-full">
         {images.map((image) => (
-          <div key={image.id} className="relative w-full h-32">
+          <div key={image.id} className="relative w-full pt-[100%]">
             <Image
               src={image.urls.thumb}
               alt={image.alt_description}
               layout="fill"
               objectFit="cover"
-              className="cursor-pointer rounded-lg shadow-md"
+              className="cursor-pointer rounded-lg shadow-md absolute top-0 left-0"
               onClick={() => addImageToCanvas(image)}
             />
           </div>
         ))}
       </div>
       <div
-        className="w-full overflow-auto bg-gradient-to-br from-white/30 to-white/10 backdrop-blur-sm rounded-lg shadow-lg"
-        style={{ maxHeight: '70vh' }}
+        className="w-full overflow-auto bg-gradient-to-br from-white/30 to-white/10 backdrop-blur-sm rounded-lg shadow-lg mt-8"
+        style={{ maxHeight: '60vh' }}
       >
         <div
           ref={combinedRef}
