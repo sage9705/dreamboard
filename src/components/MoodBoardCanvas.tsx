@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, MutableRefObject } from 'react';
 import { useDrop } from 'react-dnd';
 import { Resizable, ResizeCallbackData } from 'react-resizable';
 import { useMoodBoard } from '../hooks/useMoodBoard';
@@ -35,7 +35,7 @@ interface CanvasElement {
 
 const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
   const { elements, addElement, updateElement, removeElement, bringToFront, sendToBack } = useMoodBoard();
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 });
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; elementId: string } | null>(null);
 
@@ -64,7 +64,7 @@ const MoodBoardCanvas: React.FC<MoodBoardCanvasProps> = ({ images }) => {
 
   const combinedRef = useCallback(
     (node: HTMLDivElement | null) => {
-      canvasRef.current = node;
+      (canvasRef as MutableRefObject<HTMLDivElement | null>).current = node;
       drop(node);
     },
     [drop]
