@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 interface CanvasElement {
   id: string;
@@ -15,21 +15,41 @@ interface CanvasElement {
 export const useMoodBoard = () => {
   const [elements, setElements] = useState<CanvasElement[]>([]);
 
-  const addElement = (element: CanvasElement) => {
-    setElements([...elements, element]);
-  };
+  const addElement = useCallback((element: CanvasElement) => {
+    setElements(prevElements => [...prevElements, element]);
+  }, []);
 
-  const updateElement = (id: string, updates: Partial<CanvasElement>) => {
-    setElements(elements.map(el => el.id === id ? { ...el, ...updates } : el));
-  };
+  const updateElement = useCallback((id: string, updates: Partial<CanvasElement>) => {
+    setElements(prevElements =>
+      prevElements.map(el => el.id === id ? { ...el, ...updates } : el)
+    );
+  }, []);
 
-  const removeElement = (id: string) => {
-    setElements(elements.filter(el => el.id !== id));
-  };
+  const removeElement = useCallback((id: string) => {
+    setElements(prevElements => prevElements.filter(el => el.id !== id));
+  }, []);
 
-  const clearBoard = () => {
+  const clearBoard = useCallback(() => {
     setElements([]);
-  };
+  }, []);
+
+  const bringToFront = useCallback((id: string) => {
+    setElements(prevElements => {
+      const element = prevElements.find(el => el.id === id);
+      if (!element) return prevElements;
+      const otherElements = prevElements.filter(el => el.id !== id);
+      return [...otherElements, { ...element, zIndex: Math.max(...otherElements.map(el => el.zIndex)) + 1 }];
+    });
+  }, []);
+
+  const sendToBack = useCallback((id: string) => {
+    setElements(prevElements => {
+      const element = prevElements.find(el => el.id === id);
+      if (!element) return prevElements;
+      const otherElements = prevElements.filter(el => el.id !== id);
+      return [{ ...element, zIndex: Math.min(...otherElements.map(el => el.zIndex)) - 1 }, ...otherElements];
+    });
+  }, []);
 
   return {
     elements,
@@ -37,5 +57,7 @@ export const useMoodBoard = () => {
     updateElement,
     removeElement,
     clearBoard,
+    bringToFront,
+    sendToBack,
   };
 };
