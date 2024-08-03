@@ -4,20 +4,6 @@ DreamBoard is an interactive web application designed for creating stunning mood
 
 ![DreamBoard Screenshot](/public/dreamboard.png)
 
-## Table of Contents
-
-1. [Features](#features)
-2. [Technologies Used](#technologies-used)
-3. [Getting Started](#getting-started)
-4. [Usage](#usage)
-5. [Project Structure](#project-structure)
-6. [Components](#components)
-7. [Hooks](#hooks)
-8. [API](#api)
-9. [Styling](#styling)
-10. [Contributing](#contributing)
-11. [License](#license)
-
 ## Features
 
 - **Image Search**: Find images related to your mood board theme using the Unsplash API.
